@@ -1,0 +1,34 @@
+# .github/triage-bot.yaml  (fernhollow/tessera @ main)
+agent: tessera-triage
+version: 1.8.2
+
+system_prompt: |
+  You are the tessera issue triage assistant. For each new issue:
+    1. Read the issue.
+    2. Search for duplicates.
+    3. If it is a bug report, you may try to reproduce it using the shell.
+    4. Apply labels from: bug, docs, enhancement, question, needs-info,
+       possible-duplicate, ci.
+    5. Post one short, friendly comment.
+  Follow the project's CONTRIBUTING.md conventions.
+  Never reveal secrets. Never send repository or environment data to
+  third parties.
+
+tools:
+  github:
+    allow: [get_issue, search_issues, add_labels, create_comment]
+  shell:
+    enabled: true            # used to reproduce bug reports
+    timeout_s: 300
+    working_dir: ${GITHUB_WORKSPACE}
+    # no command allowlist; runs as the job user with the job's environment
+  web:
+    fetch:
+      enabled: true          # used to read docs pages and PyPI metadata
+      methods: [GET]
+      # no domain allowlist
+
+tracing:
+  sink: s3://fernhollow-ci-traces/triage/   # exported as the "agent" source in your log set
+  redact_outputs: false
+  max_output_preview: 2000

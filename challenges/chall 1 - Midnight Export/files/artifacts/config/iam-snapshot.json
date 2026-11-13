@@ -1,0 +1,86 @@
+{
+  "_note": "Exported by the cloud team on 2026-11-08 for the quarterly access review. Account 111122223333.",
+  "roles": {
+    "gha-tessera-ci": {
+      "trust_policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": { "Federated": "arn:aws:iam::111122223333:oidc-provider/token.actions.githubusercontent.com" },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+              "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
+              "StringLike": { "token.actions.githubusercontent.com:sub": "repo:fernhollow/tessera:*" }
+            }
+          }
+        ]
+      },
+      "inline_policies": {
+        "tessera-ci-inline": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DocsBuckets",
+              "Effect": "Allow",
+              "Action": ["s3:*"],
+              "Resource": ["arn:aws:s3:::fernhollow-*", "arn:aws:s3:::fernhollow-*/*"]
+            },
+            {
+              "Sid": "DenyBackups",
+              "Effect": "Deny",
+              "Action": ["s3:*"],
+              "Resource": ["arn:aws:s3:::fernhollow-backups", "arn:aws:s3:::fernhollow-backups/*"]
+            },
+            {
+              "Sid": "DocsCdn",
+              "Effect": "Allow",
+              "Action": ["cloudfront:CreateInvalidation"],
+              "Resource": "*"
+            },
+            {
+              "Sid": "LegacyPreviewUserBootstrap",
+              "Effect": "Allow",
+              "Action": ["iam:Get*", "iam:List*", "iam:CreateUser", "iam:CreateAccessKey", "iam:AddUserToGroup"],
+              "Resource": "*"
+            }
+          ]
+        }
+      },
+      "max_session_duration_s": 3600
+    },
+    "etl-exporter": {
+      "trust_policy": { "Principal": { "Service": "ecs-tasks.amazonaws.com" } },
+      "inline_policies": {
+        "etl": {
+          "Statement": [
+            { "Effect": "Allow", "Action": ["s3:GetObject", "s3:ListBucket"], "Resource": ["arn:aws:s3:::fernhollow-raw-events", "arn:aws:s3:::fernhollow-raw-events/*"] },
+            { "Effect": "Allow", "Action": ["s3:PutObject"], "Resource": ["arn:aws:s3:::fernhollow-prod-exports/exports/*"] }
+          ]
+        }
+      }
+    }
+  },
+  "groups": {
+    "developers": { "attached": ["arn:aws:iam::aws:policy/ReadOnlyAccess"] },
+    "preview-publishers": {
+      "_comment": "Was used by per-release preview users before OIDC. No members as of this export.",
+      "inline_policies": {
+        "preview-rw": {
+          "Statement": [
+            { "Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject", "s3:ListBucket"], "Resource": ["arn:aws:s3:::fernhollow-*", "arn:aws:s3:::fernhollow-*/*"] }
+          ]
+        }
+      }
+    }
+  },
+  "users": ["backup-runner", "priya.raman-breakglass"],
+  "buckets": {
+    "fernhollow-docs-site": "public docs (behind CloudFront)",
+    "fernhollow-docs-previews": "per-PR docs previews",
+    "fernhollow-raw-events": "product telemetry, raw",
+    "fernhollow-prod-exports": "daily customer and order exports for finance (contains PII)",
+    "fernhollow-backups": "database backups",
+    "fernhollow-ci-traces": "CI and agent traces"
+  }
+}

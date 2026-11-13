@@ -1,0 +1,39 @@
+# .github/workflows/issue-triage.yml  (fernhollow/tessera @ main, as deployed on 2026-11-10)
+name: issue-triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write        # needed for the docs-preview check below
+
+jobs:
+  triage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Added in 1.7.0 so the bot can check whether a PR's docs preview exists
+      # when someone reports a broken preview link.
+      - name: AWS credentials (docs previews)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::111122223333:role/gha-tessera-ci
+          aws-region: us-east-1
+
+      - name: Run triage bot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LLM_API_KEY: ${{ secrets.TRIAGE_LLM_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          pip install -q tessera-triage-bot==1.8.2
+          triage-bot run --config .github/triage-bot.yaml --issue "$ISSUE_NUMBER"

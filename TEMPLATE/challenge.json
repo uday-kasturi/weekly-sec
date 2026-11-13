@@ -1,0 +1,197 @@
+{
+  "id": "chall-N-slug",
+  "title": "Title",
+  "week": "Chall N",
+  "subtitle": "One sentence that sets the hook: what happened and what the player must find out.",
+  "angle": "Red | Blue | Purple | DFIR | Analysis",
+  "task": "Exploit/repro | Detection engineering | Alert triage | Log hunt | Config audit | Payload analysis",
+  "difficulty": "Beginner | Intermediate | Advanced",
+  "minutes": "60–90",
+  "skills": [
+    "skill",
+    "skill"
+  ],
+  "inspiredBy": [
+    {
+      "title": "Exact title of the write-up",
+      "source": "Who published it",
+      "date": "Mon YYYY",
+      "url": "https://…",
+      "note": "One or two sentences: what happened for real, and which part of this challenge it maps to. Required (at least one). Shown on the score screen when the player is done."
+    }
+  ],
+  "salt": "generate: node -e \"console.log(require('crypto').randomBytes(8).toString('hex'))\"",
+  "briefing": "briefing.md",
+  "solution": "solution.md",
+  "logs": "artifacts/logs.json",
+  "evidence": [
+    {
+      "path": "artifacts/example.yml",
+      "label": "example.yml",
+      "note": "What this file is, in one line."
+    }
+  ],
+  "columns": [
+    {
+      "label": "ts",
+      "path": "ts"
+    },
+    {
+      "label": "source",
+      "path": "source"
+    },
+    {
+      "label": "event",
+      "path": [
+        "eventName",
+        "action",
+        "event"
+      ]
+    }
+  ],
+  "examples": [
+    "| count by source"
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "kind": "answer",
+      "points": 70,
+      "short": "Two-word label",
+      "prompt": "A question with exactly one checkable answer.",
+      "placeholder": "format hint, e.g. 1234",
+      "answers": [
+        "canonical answer first",
+        "accepted alternative"
+      ],
+      "hints": [
+        {
+          "cost": 2,
+          "text": "A nudge toward the right area."
+        },
+        {
+          "cost": 4,
+          "text": "The technique, query or tool to use."
+        },
+        {
+          "cost": 7,
+          "text": "Most of the method, stopping short of the answer.",
+          "query": "optional: the exact explorer query for this tier. It gets a Run in Logs button, and the build checks that it parses and returns rows."
+        }
+      ],
+      "guide": [
+        {
+          "text": "Walkthrough step 1 (Guided → Walkthrough mode): what to look at and why. Shown one step at a time."
+        },
+        {
+          "text": "Step 2: a step can carry a query, which the player runs into Logs with one click.",
+          "query": "| count by source"
+        },
+        {
+          "text": "Last step: point at where the answer is visible, without stating it."
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "kind": "choice",
+      "points": 10,
+      "wrongCost": 2,
+      "short": "Best detection",
+      "prompt": "Pick-one question. Every wrong option explains why it's wrong; the player loses wrongCost per wrong pick and that option is struck out.",
+      "hints": [
+        {
+          "cost": 1,
+          "text": "…"
+        }
+      ],
+      "options": [
+        {
+          "correct": true,
+          "text": "The right option.",
+          "why": "Shown once solved: why this is the best choice, with timestamps or evidence."
+        },
+        {
+          "text": "A plausible wrong option.",
+          "why": "Why it's wrong (fires too late, fires on benign data, wouldn't see this at all…). Phrase it as a hint, not the answer."
+        },
+        {
+          "text": "Another wrong option.",
+          "why": "…"
+        }
+      ],
+      "guide": [
+        {
+          "text": "Walkthrough steps are required on every question. For choice and rank questions, explain the reasoning to apply; a query is optional."
+        }
+      ]
+    },
+    {
+      "id": "q3",
+      "kind": "rank",
+      "points": 20,
+      "wrongCost": 2,
+      "short": "Response plan",
+      "board": "Response board",
+      "prompt": "Ranking question, played on its own board tab: the player drags every item into an ordered plan or into Don't do.",
+      "hints": [
+        {
+          "cost": 2,
+          "text": "…"
+        }
+      ],
+      "items": [
+        {
+          "id": "first",
+          "text": "The action that must come first.",
+          "why": "Why it matters. Shown if the player puts it in Don't do, and beside the tile once the question is over."
+        },
+        {
+          "id": "second",
+          "text": "Another needed action.",
+          "why": "…"
+        },
+        {
+          "id": "third",
+          "text": "Another needed action.",
+          "why": "…"
+        },
+        {
+          "id": "last",
+          "text": "The action that must come last.",
+          "why": "…"
+        },
+        {
+          "id": "x-bad",
+          "exclude": true,
+          "text": "A tempting action that's wrong here.",
+          "why": "Why it's wrong. Shown if the player puts it in the plan."
+        }
+      ],
+      "rules": [
+        {
+          "before": "first",
+          "after": [
+            "second",
+            "third",
+            "last"
+          ],
+          "why": "Shown if broken. Explain the principle without naming the fix outright."
+        },
+        {
+          "before": [
+            "second",
+            "third"
+          ],
+          "after": "last",
+          "why": "…"
+        }
+      ],
+      "guide": [
+        {
+          "text": "Walkthrough steps are required on every question. For choice and rank questions, explain the reasoning to apply; a query is optional."
+        }
+      ]
+    }
+  ]
+}

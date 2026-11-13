@@ -1,0 +1,19 @@
+# Only for challenges that need a live target. Rename to docker-compose.yml.
+# Rules (enforced by CI):
+#   - every published port binds to 127.0.0.1
+#   - pin the exact vulnerable image tag or digest
+#   - no host network mode, no privileged containers, no mounts outside ./
+name: wnn-slug
+
+services:
+  target:
+    image: vendor/product:1.2.3          # exact vulnerable version
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      ADMIN_PASSWORD: "weekly-sec-lab-only"   # obviously fake
+    networks: [lab]
+
+networks:
+  lab:
+    internal: false   # set true if the target needs no outbound access (preferred)

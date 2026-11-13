@@ -1,0 +1,16 @@
+{
+  "alert_id": "ALR-20261111-0007",
+  "rule": "CI role used from outside GitHub Actions egress ranges",
+  "rule_description": "Fires when a session of a gha-* IAM role makes an S3 data call from an IP that is not in the published GitHub Actions ranges. Evaluated every 5 minutes.",
+  "severity": "medium",
+  "status": "new",
+  "fired_at": "2026-11-11T00:03:12Z",
+  "matched_event": {
+    "eventTime": "2026-11-10T23:57:05Z",
+    "eventName": "GetObject",
+    "principal": "arn:aws:sts::111122223333:assumed-role/gha-tessera-ci/GitHubActions",
+    "sourceIPAddress": "203.0.113.77",
+    "bucket": "fernhollow-prod-exports"
+  },
+  "matches_in_window": 2
+}
