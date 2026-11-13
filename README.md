@@ -5,7 +5,13 @@
 There's no platform, login or leaderboard. Clone the repo, open a challenge folder and start.
 
 > [!WARNING]
-> Some challenges include a `lab/` folder that runs **intentionally vulnerable software**. Run labs only inside an isolated VM or a disposable container host. Never run them on a production machine, a work laptop, or any host reachable from the internet. Every lab binds to `127.0.0.1` only. Tear it down with `docker compose down -v` when you're done.
+> Some challenges run **intentionally vulnerable software**. Each of these ships with a ready-made Docker setup in its `lab/` folder, so the vulnerable app runs in containers and never gets installed on your machine. You only need [Docker](https://docs.docker.com/get-started/get-docker/). Every lab is locked down, and the repo checks enforce it:
+>
+> - ports are reachable from your own machine only (`127.0.0.1`), never from your network;
+> - no host networking and no privileged containers;
+> - no access to your files outside the lab folder, and no access to Docker itself.
+>
+> Start a lab with `docker compose up -d` from its `lab/` folder. Remove it, data included, with `docker compose down -v` when you're done. For an extra margin, run labs in a VM rather than on a work laptop, and never on a machine reachable from the internet.
 >
 > No challenge ships real malware. Attacker behaviour is reconstructed as logs, text and harmless stand-ins. All names, accounts, keys, IPs and domains are fictional.
 

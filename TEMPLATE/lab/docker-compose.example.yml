@@ -1,19 +1,30 @@
 # Only for challenges that need a live target. Rename to docker-compose.yml.
-# Rules (enforced by CI):
+# Players run it with:  docker compose up -d   and remove it with:  docker compose down -v
+# Rules (enforced by tools/check.js in CI):
 #   - every published port binds to 127.0.0.1
-#   - pin the exact vulnerable image tag or digest
-#   - no host network mode, no privileged containers, no mounts outside ./
-name: wnn-slug
+#   - no host network mode, no privileged containers, no host pid/ipc namespaces
+#   - no Docker socket, no bind mounts outside this folder
+# Also do (not enforced, but expected): pin the exact vulnerable image tag or digest,
+# drop capabilities, block privilege escalation, cap resources, and keep the lab
+# network internal unless the target genuinely needs to reach the internet.
+name: chall-n-slug
 
 services:
   target:
-    image: vendor/product:1.2.3          # exact vulnerable version
+    image: vendor/product:1.2.3          # exact vulnerable version (or @sha256:digest)
     ports:
       - "127.0.0.1:8080:8080"
     environment:
       ADMIN_PASSWORD: "weekly-sec-lab-only"   # obviously fake
+    cap_drop: [ALL]
+    # cap_add: [NET_BIND_SERVICE]        # add back only what the target needs
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 1.0
     networks: [lab]
 
 networks:
   lab:
-    internal: false   # set true if the target needs no outbound access (preferred)
+    internal: true    # no outbound internet; set false only if the target needs it

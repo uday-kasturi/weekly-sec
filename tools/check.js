@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Repo checks, run by CI and runnable locally:  node tools/check.js
-//  1. every lab docker-compose file publishes ports on 127.0.0.1 only, with no host networking or privileged mode
+//  1. every lab docker-compose file publishes ports on 127.0.0.1 only, with no host networking, privileged mode,
+//     host namespaces, Docker socket, or bind mounts outside the lab folder
 //  2. every challenge folder is named "chall N - Name" and has a readme.txt; browser challenges also have
 //     play.html and files/ (challenge.js, explorer.js in sync with explorer/explorer.js, artifacts/)
 //  3. every logs.json parses, has ts + source on each event, and matches logs.js
@@ -31,6 +32,13 @@ for (const f of files.filter((f) => /docker-compose[^/]*\.ya?ml$|compose[^/]*\.y
     const code = line.replace(/#.*$/, '');
     if (/^\s*network_mode:\s*["']?host/.test(code)) fail(`${rel(f)}:${i + 1} network_mode: host is not allowed`);
     if (/^\s*privileged:\s*true/.test(code)) fail(`${rel(f)}:${i + 1} privileged containers are not allowed`);
+    if (/docker\.sock/.test(code)) fail(`${rel(f)}:${i + 1} mounting the Docker socket is not allowed`);
+    if (/^\s*(pid|ipc|userns_mode|cgroup):\s*["']?host/.test(code)) fail(`${rel(f)}:${i + 1} sharing host namespaces is not allowed`);
+    // bind mounts must stay inside the lab folder: "./x:/y" is fine, "/etc:/y", "~/x:/y" or "../x:/y" are not
+    const vol = code.match(/^\s*-\s*["']?([^"':\s]+):\/[^\s"']*/);
+    if (vol && /^(\/|~|\.\.|\$)/.test(vol[1])) fail(`${rel(f)}:${i + 1} mount "${vol[1]}" reaches outside the lab folder`);
+    const src = code.match(/^\s*source:\s*["']?([^"'\s]+)/);
+    if (src && /^(\/|~|\.\.|\$)/.test(src[1])) fail(`${rel(f)}:${i + 1} mount source "${src[1]}" reaches outside the lab folder`);
     const m = code.match(/^(\s*)ports:\s*$/);
     if (m) { inPorts = true; indent = m[1].length; return; }
     if (inPorts) {
