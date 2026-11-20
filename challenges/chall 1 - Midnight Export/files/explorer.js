@@ -651,6 +651,9 @@ select:focus,input:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .stage summary .st{margin-left:auto;font:500 12px var(--mono);color:var(--muted)}
 .stage.done summary .st{color:var(--ok)}
 .stage .prompt{margin:0 0 6px;color:var(--muted)}
+.gstory{margin:4px 0 2px;line-height:1.65;font-size:13.5px;color:var(--ink)}
+.gstory em{color:var(--accent);font-style:normal;font-weight:600}
+.gstory + .gstory{margin-top:8px}
 .step{border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:12px 0}
 .step > b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent);margin-bottom:2px}
 /* choice questions */
@@ -1129,7 +1132,9 @@ field not contains x · field not in [..] · field not exists
       el('div', { class: 'body' }, view, obj));
 
     const boardQs = qs.filter((q) => q.kind === 'rank');
-    const TABS = [['briefing', 'Briefing'], ['guide', 'Guide'], ['logs', 'Logs'], ['evidence', 'Evidence'],
+    const hasLogs = Array.isArray(logs) && logs.length > 0;
+    const firstWork = hasLogs ? 'logs' : 'evidence';
+    const TABS = [['briefing', 'Briefing'], ['guide', 'Guide'], ...(hasLogs ? [['logs', 'Logs']] : []), ['evidence', 'Evidence'],
       ...boardQs.map((q) => [`board-${q.id}`, q.board || q.short || 'Plan']),
       ['notebook', 'Notebook'], ['debrief', 'Score'], ['objectives', 'Objectives']];
     const gated = TABS.map(([id]) => id).filter((id) => !['briefing', 'debrief', 'objectives'].includes(id));
@@ -1264,7 +1269,7 @@ field not contains x · field not in [..] · field not exists
       guideFocus = null;
       const wrap = el('div', { class: 'prose guide' },
         el('h1', null, 'Walkthrough'),
-        el('p', { class: 'sub' }, 'It follows your progress and opens at the objective you’re on. Open one step at a time, and only when you need it. Every query runs straight into Logs.'));
+        el('p', { class: 'sub' }, 'Read it like a story. Each objective opens with why you’re doing what you’re doing, then hands you the exact step. It follows your progress; open one step at a time, and only when you need it.' + (hasLogs ? ' Every query runs straight into Logs.' : '')));
       let curSec = null;
       for (const q of qs) {
         const steps = q.guide || [];
@@ -1273,6 +1278,7 @@ field not contains x · field not in [..] · field not exists
         const sec = el('details', { class: 'stage' + (resolved(q) ? ' done' : ''), open: q === cur },
           el('summary', null, el('span', { class: 'qn' }, Q(q)), el('span', { class: 'qt' }, q.short || ''), el('span', { class: 'st' }, status)));
         sec.append(el('p', { class: 'prompt' }, q.prompt));
+        if (q.story) for (const para of unsealT(q.story).split('\n\n')) sec.append(el('p', { class: 'gstory', html: inline(para) }));
         for (let i = 0; i < n; i++) {
           const st = steps[i];
           sec.append(el('div', { class: 'step' }, el('b', null, `Step ${i + 1}`), el('div', { html: inline(unsealT(st.text)) }), st.query ? queryBox(unsealT(st.query)) : null));
@@ -1319,7 +1325,7 @@ field not contains x · field not in [..] · field not exists
             S.mode = mode; S.guide = guide; S.timebox = tb; S.startedAt = now(); save();
             logEvent('start', `Started in ${modeLabel()} mode${tb ? `, ${tb}-minute timebox` : ', no timebox'}`);
             refreshChrome(); renderObjectives();
-            if (walk()) openGuide(); else show('logs');
+            if (walk()) openGuide(); else show(firstWork);
             toast(walk() ? 'Clock started. The Guide tab walks you through it.' : 'Clock started. Good hunting.');
           } }, 'Begin investigation →')));
     }
@@ -1753,7 +1759,7 @@ field not contains x · field not in [..] · field not exists
     if (store('weekly-sec:objhide')) app.classList.add('objhide');
     renderObjectives();
     const last = store(`${KEY}:tab`);
-    show(!started() ? 'briefing' : finished() ? 'debrief' : last && last !== 'objectives' && tabs[last] && !tabs[last].disabled ? last : 'logs');
+    show(!started() ? 'briefing' : finished() ? 'debrief' : last && last !== 'objectives' && tabs[last] && !tabs[last].disabled ? last : firstWork);
   }
 
   // ====================================================================

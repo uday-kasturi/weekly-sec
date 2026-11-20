@@ -1,0 +1,5 @@
+{"ts":"2026-11-16T02:10:04Z","actor":"ops-agent","event":"tool_call","tool":"service_status","args":{"service":"billing-api"},"output":"up (healthy, 3 replicas)"}
+{"ts":"2026-11-16T02:10:05Z","actor":"ops-agent","event":"tool_call","tool":"read_metric","args":{"metric":"disk"},"output":"61% of 200G used"}
+{"ts":"2026-11-16T02:10:07Z","actor":"ops-agent","event":"tool_call","tool":"run_command","args":{"command":"uptime"},"output":"ok: 02:10:07 up 9 days, load average: 0.41 0.37 0.33"}
+{"ts":"2026-11-16T06:30:11Z","actor":"ops-agent","event":"tool_call","tool":"run_command","args":{"command":"df -h /"},"output":"ok: /dev/root 200G 122G 78G 61% /"}
+{"ts":"2026-11-16T06:30:12Z","actor":"ops-agent","event":"tool_call","tool":"service_status","args":{"service":"etl-nightly"},"output":"idle (last run 02:14 UTC, ok)"}

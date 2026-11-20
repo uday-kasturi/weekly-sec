@@ -1,0 +1,24 @@
+# Meadowlark ops-assistant -- MCP server security policy
+# Loaded at startup. "Secure mode" restricts run_command to an allowlist of
+# executables so the agent can only run safe, read-only diagnostics.
+
+security:
+  secure_mode: true          # enforce the allowlist below
+  command_timeout_seconds: 10
+  max_output_bytes: 20000
+
+  # Only these executables may be run. Reviewed by the platform team.
+  allowed_executables:
+    - ls
+    - cat
+    - echo
+    - grep
+    - head
+    - tail
+    - wc
+    - uptime
+    - df
+    - bash        # for multi-step health checks, e.g. `bash -c "..."`
+
+  # Reserved for a future release: run without a shell and drop this allowlist.
+  # no_shell_mode: false

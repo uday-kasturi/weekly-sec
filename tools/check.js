@@ -110,7 +110,7 @@ for (const [top, c] of challenges) {
         if (q.kind === 'answer' && (!Array.isArray(q.hashes) || !q.hashes.length || q.hashes.some((h) => !/^[0-9a-f]{64}$/.test(h)))) {
           fail(`${rel(cj)}: ${q.id} needs sha256 hashes`);
         }
-        if (q.kind === 'answer' && q.answer) {
+        if (q.kind === 'answer' && q.answer && !q.visibleAnswer) {
           let plain = null;
           try { plain = require('../explorer/explorer.js').unseal(q.answer, ch.salt); } catch (e) { fail(`${rel(cj)}: ${q.id} sealed answer is corrupt`); }
           if (plain && plain.length > 3 && src.includes(plain)) fail(`${rel(cj)}: ${q.id}'s answer appears in plaintext`);

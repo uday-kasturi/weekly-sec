@@ -1,0 +1,35 @@
+# chall 2 - Safe Mode: the lab target.
+# Start it:   docker compose up -d --build
+# Stop it:    docker compose down -v
+#
+# Locked down per the repo rules: the port is reachable from your own machine
+# only (127.0.0.1), the container drops all Linux capabilities, cannot gain new
+# privileges, has no access to your files or to Docker, and has resource caps.
+name: chall-2-safe-mode
+
+services:
+  ops-assistant:
+    build: .
+    image: weekly-sec/chall-2-safe-mode:lab
+    # Host-only: nothing on your network can reach it.
+    ports:
+      - "127.0.0.1:8808:8808"
+    environment:
+      PORT: "8808"
+      # A deploy credential the ops host holds. Fake (ends in EXAMPLE). Remote
+      # code execution exposes it -- that is why rotating it is part of the fix.
+      OPSBOT_AWS_ACCESS_KEY_ID: "AKIAMDLKOPSVCEXAMPLE"
+      OPSBOT_AWS_SECRET_ACCESS_KEY: "wXMeadowlarkOpsDeployKeyDoNotUseEXAMPLE"
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 0.5
+    networks: [lab]
+    restart: unless-stopped
+
+networks:
+  lab:
+    driver: bridge   # isolated from your other compose projects; the port is still bound to 127.0.0.1 only

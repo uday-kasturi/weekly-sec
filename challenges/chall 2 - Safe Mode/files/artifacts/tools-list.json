@@ -1,0 +1,60 @@
+{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+        "tools": [
+            {
+                "name": "service_status",
+                "description": "Report whether a named internal service is up. Reads from a fixed status file.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "service": {
+                            "type": "string",
+                            "description": "service name, e.g. billing-api"
+                        }
+                    },
+                    "required": [
+                        "service"
+                    ]
+                }
+            },
+            {
+                "name": "read_metric",
+                "description": "Return the latest value of a whitelisted host metric (load, disk, mem).",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "metric": {
+                            "type": "string",
+                            "enum": [
+                                "load",
+                                "disk",
+                                "mem"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "metric"
+                    ]
+                }
+            },
+            {
+                "name": "run_command",
+                "description": "Run a diagnostic shell command on the ops host. Secure mode is enabled: the command's executable must be on the server allowlist, so only safe, read-only diagnostics can run.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "command": {
+                            "type": "string",
+                            "description": "the full command line to run"
+                        }
+                    },
+                    "required": [
+                        "command"
+                    ]
+                }
+            }
+        ]
+    }
+}

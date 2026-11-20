@@ -1,0 +1,33 @@
+CHALL 2 - SAFE MODE - LAB REQUIREMENTS
+======================================
+
+You need two things, both from Docker:
+
+  1. Docker Engine - the `docker` command.
+  2. The Docker Compose v2 plugin - the `docker compose` SUBCOMMAND
+     (two words, with a space). This is NOT the old, separate
+     `docker-compose` (hyphen) binary.
+
+CHECK WHAT YOU HAVE
+-------------------
+  docker --version
+  docker compose version      <- must print "Docker Compose version v2.x"
+
+If `docker compose version` fails with "unknown shorthand flag: 'd'",
+"'compose' is not a docker command", or similar, the v2 plugin is
+missing. Install it:
+
+  Debian / Ubuntu:  sudo apt-get update && sudo apt-get install -y docker-compose-plugin
+  Fedora / RHEL:    sudo dnf install -y docker-compose-plugin
+  macOS / Windows:  use Docker Desktop (the plugin is built in; just update it).
+
+Then re-run `docker compose version` to confirm it prints a v2.x version.
+
+RUN THE LAB
+-----------
+From this lab/ folder:
+
+  docker compose up -d --build      # start
+  docker compose down -v      # stop and clean up when done
+
+The target then listens on http://127.0.0.1:8808/mcp.

@@ -39,6 +39,8 @@ for (const k of ['id', 'title', 'salt', 'briefing', 'questions']) if (!c[k]) pro
 if (c.salt && !/^[0-9a-f]{16,}$/.test(c.salt)) problems.push('salt must be 16+ hex chars (generate: node -e "console.log(require(\'crypto\').randomBytes(8).toString(\'hex\'))")');
 const total = (c.questions || []).reduce((s, q) => s + (q.points || 0), 0);
 if (total !== 100) problems.push(`question points add up to ${total}, not 100`);
+if (c.lab && !fs.existsSync(src('lab'))) problems.push('challenge.json has a "lab" but there is no lab/ folder in the source');
+if (c.lab && fs.existsSync(src('lab')) && !fs.readdirSync(src('lab')).some((f) => /compose.*\.ya?ml$/.test(f))) problems.push('lab/ has no docker-compose file');
 if (!(c.inspiredBy || []).length) problems.push('add "inspiredBy": the real incidents this challenge is based on (title, source, date, url, note), shown on the score screen');
 for (const q of c.questions || []) if (!(q.guide || []).length) problems.push(`${q.id}: add "guide" steps for walkthrough mode`);
 for (const r of c.inspiredBy || []) if (!r.title || !/^https:\/\//.test(r.url || '') || !r.note) problems.push(`inspiredBy "${r.title || '?'}": needs a title, an https url and a note`);
@@ -114,10 +116,12 @@ const out = {
     const o = { id: q.id, kind: q.kind, points: q.points, short: q.short, prompt: q.prompt, placeholder: q.placeholder,
       board: q.board, wrongCost: q.wrongCost,
       hints: (q.hints || []).map((h) => ({ cost: h.cost, text: S(h.text), query: h.query ? S(h.query) : undefined })),
-      guide: (q.guide || []).map((g) => ({ text: S(g.text), query: g.query ? S(g.query) : undefined })) };
+      guide: (q.guide || []).map((g) => ({ text: S(g.text), query: g.query ? S(g.query) : undefined })),
+      story: q.story ? S(q.story) : undefined };
     if (q.kind === 'answer') {
       o.hashes = q.answers.map((a) => answerHash(c.salt, q.id, a));
       o.answer = S(q.answers[0]);
+      if (q.visibleAnswer) o.visibleAnswer = true; // answer is part of the shown material (e.g. a tool name in evidence)
     }
     if (q.kind === 'choice') {
       // options are shuffled and renamed so neither position nor id gives the answer away
@@ -159,6 +163,8 @@ const json = JSON.stringify(out, null, 1);
 fs.writeFileSync(path.join(F, 'challenge.js'),
   `// Built by tools/build.js. Answers are salted SHA-256 hashes; hints, keys, walkthrough and story are\n// sealed (obfuscated, not encrypted) so they can't be read by accident. Don't edit by hand.\nwindow.WEEKLY_SEC_CHALLENGE = ${json};\n`);
 fs.copyFileSync(path.join(root, 'explorer', 'explorer.js'), path.join(F, 'explorer.js'));
+const hasLab = fs.existsSync(src('lab'));
+if (hasLab) { fs.rmSync(path.join(outDir, 'lab'), { recursive: true, force: true }); fs.cpSync(src('lab'), path.join(outDir, 'lab'), { recursive: true }); }
 
 const name = `${c.week ? c.week + ' · ' : ''}${c.title}`;
 const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
@@ -170,7 +176,7 @@ fs.writeFileSync(path.join(outDir, 'play.html'), `<!doctype html>
 <title>${esc(name)} · weekly-sec</title>
 </head>
 <body>
-<noscript>This challenge runs in your browser and needs JavaScript turned on. The raw logs are in files/artifacts/logs.json.</noscript>
+<noscript>This challenge runs in your browser and needs JavaScript turned on.${c.logs ? " The raw logs are in files/artifacts/logs.json." : ""}</noscript>
 ${c.logs ? '<script src="files/artifacts/logs.js"></script>\n' : ''}<script src="files/challenge.js"></script>
 <script src="files/explorer.js"></script>
 </body>
@@ -193,37 +199,89 @@ const tip = (t) => wrap(t, '  ', '- ');
 const ascii = (t) => String(t).replace(/[–—]/g, '-').replace(/→/g, '->').replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 const title = ascii(`${c.week ? c.week + ' - ' : ''}${c.title}`).toUpperCase();
 const field = (k, v) => v ? wrap(ascii(v), ' '.repeat(13), (k + ':').padEnd(13)) : null;
+const hasLogs = !!c.logs;
+const lab = c.lab || {};
+const labDir = `${path.basename(outDir)}/${lab.dir || 'lab'}`;
+const startCmd = lab.start || 'docker compose up -d --build';
+const stopCmd = lab.stop || 'docker compose down -v';
+
+const steps = [{ text: 'Get this folder onto your computer: clone the repository, or download it as a ZIP from GitHub and unzip it.' }];
+if (hasLab) {
+  steps.push({ text: 'Install Docker Engine and the Docker Compose v2 plugin if you do not have them (https://docs.docker.com/get-started/get-docker/). You need the "docker compose" subcommand (two words, v2) -- not the old "docker-compose" binary. Verify with:', lines: ['      docker compose version', '   It must print a v2.x version. If it errors, see lab/REQUIREMENTS.txt.'] });
+  steps.push({ text: `Start the lab. Open a terminal, cd into "${labDir}", and run:`, lines: ['      ' + startCmd, ...(lab.url ? ['   The target then listens on ' + ascii(lab.url) + '.'] : [])] });
+}
+steps.push({ text: 'Open this folder and double-click play.html. It opens in your web browser (Chrome, Firefox, Edge or Safari). This is the game, and where you read the briefing and submit every answer. There is no server and no sign-up, and nothing leaves your machine.' });
+steps.push({ text: 'Read the briefing, then choose a mode and a timebox and click "Begin investigation". The clock starts then.' });
+steps.push({ text: hasLab
+  ? 'Exploit the lab from your terminal, but submit every answer back in play.html, in the Objectives panel on the right. The terminal is only for running the attack; nothing you type there is graded. A wrong pick or a rejected plan in the game tells you why it is wrong.'
+  : 'Investigate in the Logs and Evidence tabs and answer the objectives on the right. A wrong pick or a rejected plan tells you why it is wrong.' });
+steps.push({ text: 'When every objective is done, you get your score, the full story of what happened, and links to the real incidents that inspired this challenge. Click "End investigation" to stop early.' });
+if (hasLab) steps.push({ text: 'Shut the lab down when you are finished:', lines: ['      ' + stopCmd] });
+
+const tips = [
+  hasLogs ? tip('In Logs, click "Query help" for the query language. It takes two minutes to learn. Click any cell to filter on it, and click a field name to count its values.') : null,
+  hasLab ? tip('The lab speaks JSON-RPC over HTTP. You can drive it with nothing more than curl; the briefing and the in-game hints show how.') : null,
+  tip('Use the Notebook tab for your notes. It also records your hints and wrong answers.'),
+  tip('Your progress is saved in your browser. "Restart" in the top bar wipes it and starts again.'),
+  hasLogs ? tip('Prefer your own tools (jq, pandas, a SIEM)? The raw events are in files/artifacts/logs.json. You still answer in the game.') : null,
+  hasLab ? tip('The lab binds to 127.0.0.1 only and is sandboxed (all capabilities dropped, no-new-privileges, read-only filesystem, resource caps). It is safe to run locally. Never expose its port to a network.') : null,
+].filter(Boolean);
+
 const readme = [
   title, '='.repeat(title.length), '',
   wrap(ascii(c.subtitle || '')), '',
   ...[field('Type', c.task ? `${c.angle} (${c.task.toLowerCase()})` : c.angle), field('Difficulty', c.difficulty), field('Time', c.minutes && `${c.minutes} minutes`),
-    field('Skills', (c.skills || []).join(', ')), field('Format', 'Browser game. Runs offline, with nothing to install.')].filter(Boolean), '',
+    field('Skills', (c.skills || []).join(', ')),
+    hasLab ? field('Requires', 'Docker Engine and the Docker Compose v2 plugin (the "docker compose" subcommand). See lab/REQUIREMENTS.txt.') : null,
+    field('Format', hasLab ? 'A Docker lab you exploit from a terminal, plus a browser game for the objectives, hints and scoring. Runs offline.' : 'Browser game. Runs offline, with nothing to install.')].filter(Boolean), '',
   'GETTING STARTED', '---------------',
-  item(1, 'Get this folder onto your computer: clone the repository, or download it as a ZIP from GitHub and unzip it.'),
-  item(2, 'Open this folder and double-click play.html. It opens in your web browser (Chrome, Firefox, Edge or Safari). There is no server and no sign-up, and nothing leaves your machine.'),
-  item(3, 'Read the briefing. It explains the situation, the environment and what normal looks like. The clock does not start until you begin.'),
-  item(4, 'Choose a mode and a timebox, then click "Begin investigation".'),
-  '      Challenge mode: hints locked. Solve it cold.',
-  '      Guided mode, deeper hints: hints that get more specific,',
-  '        ending with the exact query to run. Each hint costs points.',
-  '      Guided mode, walkthrough: step-by-step guidance that follows',
-  '        your progress. Steps are free; the score is marked as such.',
-  item(5, 'Investigate in the Logs and Evidence tabs and answer the objectives on the right. A wrong pick or a rejected plan tells you why it is wrong.'),
-  item(6, 'When every objective is done, you get your score, the full story of what happened, and links to the real incidents that inspired this challenge. Click "End investigation" to stop early.'), '',
-  'TIPS', '----',
-  tip('In Logs, click "Query help" for the query language. It takes two minutes to learn. Click any cell to filter on it, and click a field name to count its values.'),
-  tip('Use the Notebook tab for your notes. It also records your hints and wrong answers.'),
-  tip('Your progress is saved in your browser. "Restart" in the top bar wipes it and starts again.'),
-  tip('Prefer your own tools (jq, pandas, a SIEM)? The raw events are in files/artifacts/logs.json. You still answer in the game.'), '',
+  ...steps.flatMap((st, i) => [item(i + 1, st.text), ...(st.lines || []), '']).slice(0, -1), '',
+  'MODES', '-----',
+  tip('Challenge mode: hints are locked. Solve it cold.'),
+  tip('Guided mode, deeper hints: hints that get more specific' + (hasLogs ? ', ending with the exact query to run' : '') + '. Each hint costs points.'),
+  tip('Guided mode, walkthrough: step-by-step guidance that follows your progress. Steps are free; your score is marked as a walkthrough.'), '',
+  'TIPS', '----', ...tips, '',
   'WHAT IS IN THIS FOLDER', '----------------------',
   'readme.txt   This file.',
-  'play.html    The challenge. Start here.',
-  'files/       Everything the game needs: logs, evidence and the game',
-  '             itself. Keep it next to play.html and do not rename it.', '',
+  'play.html    The game. Start here.',
+  hasLab ? 'lab/         The Docker lab target, plus REQUIREMENTS.txt (Docker +' : null,
+  hasLab ? '             Compose v2). See GETTING STARTED above.' : null,
+  `files/       ${hasLogs ? 'Logs, evidence' : 'Evidence'} and the game itself. Keep it`,
+  '             next to play.html and do not rename it.', '',
   'ABOUT THE DATA', '--------------',
-  wrap('Everything here is fictional: the company, people, accounts, keys, IP addresses and domains. AWS keys end in EXAMPLE, and IP addresses come from documentation-only ranges. Nothing in this folder is malicious.'), '',
-].join('\n');
+  wrap('Everything here is fictional: the company, people, accounts, keys, IP addresses and domains. Credentials are obviously fake (they end in EXAMPLE), and nothing in this folder is malicious. The lab target is intentionally insecure for training, and only for that.'), '',
+].filter((x) => x !== null).join('\n');
 fs.writeFileSync(path.join(outDir, 'readme.txt'), readme);
+
+// lab/REQUIREMENTS.txt: spell out the Docker + Compose v2 prerequisite for any lab challenge
+if (hasLab) {
+  const reqTitle = title + ' - LAB REQUIREMENTS';
+  const req = [
+    reqTitle, '='.repeat(reqTitle.length), '',
+    'You need two things, both from Docker:', '',
+    '  1. Docker Engine - the `docker` command.',
+    '  2. The Docker Compose v2 plugin - the `docker compose` SUBCOMMAND',
+    '     (two words, with a space). This is NOT the old, separate',
+    '     `docker-compose` (hyphen) binary.', '',
+    'CHECK WHAT YOU HAVE', '-------------------',
+    '  docker --version',
+    '  docker compose version      <- must print "Docker Compose version v2.x"', '',
+    "If `docker compose version` fails with \"unknown shorthand flag: 'd'\",",
+    '"\'compose\' is not a docker command", or similar, the v2 plugin is',
+    'missing. Install it:', '',
+    '  Debian / Ubuntu:  sudo apt-get update && sudo apt-get install -y docker-compose-plugin',
+    '  Fedora / RHEL:    sudo dnf install -y docker-compose-plugin',
+    '  macOS / Windows:  use Docker Desktop (the plugin is built in; just update it).', '',
+    'Then re-run `docker compose version` to confirm it prints a v2.x version.', '',
+    'RUN THE LAB', '-----------',
+    'From this lab/ folder:', '',
+    '  ' + startCmd + '      # start',
+    '  ' + stopCmd + '      # stop and clean up when done',
+    ...(lab.url ? ['', 'The target then listens on ' + ascii(lab.url) + '.'] : []),
+    '',
+  ].join('\n');
+  fs.writeFileSync(path.join(outDir, lab.dir || 'lab', 'REQUIREMENTS.txt'), req);
+}
 
 const digest = crypto.createHash('sha256').update(json).digest('hex').slice(0, 12);
 for (const n of notes) console.log('  ' + n);

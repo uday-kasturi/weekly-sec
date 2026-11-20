@@ -1,0 +1,21 @@
+# A normal session with the ops-assistant MCP server, captured from the agent.
+# Transport: JSON-RPC 2.0 over HTTP POST to /mcp. Nothing here is the exploit.
+
+--> POST /mcp
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{}}}
+<-- 200
+{"jsonrpc":"2.0","id":1,"result":{"serverInfo":{"name":"meadowlark-ops-assistant","version":"0.5.2"}}}
+
+--> POST /mcp
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}
+<-- 200   (see tools-list.json)
+
+--> POST /mcp
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"run_command","arguments":{"command":"uptime"}}}
+<-- 200
+{"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"{\"ok\": true, \"exit_code\": 0, \"output\": \"02:10:07 up 9 days, load average: 0.41 0.37 0.33\"}"}]}}
+
+--> POST /mcp
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"run_command","arguments":{"command":"id"}}}
+<-- 200
+{"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"{\"ok\": false, \"error\": \"blocked by secure mode: 'id' is not on the allowlist (ls, cat, echo, grep, head, tail, wc, uptime, df, bash)\"}"}]}}
